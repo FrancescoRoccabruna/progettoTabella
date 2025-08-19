@@ -1,5 +1,6 @@
 
 import sys
+import sqlite3
 
 
 
@@ -20,12 +21,10 @@ class GestioneAccessi:
             self.path = path
             self.code = code
 
-
     def add(self,ans):
         method = getattr(self, f"{GestioneAccessi.type}_add", None)
         method(ans)
 
-    
 
     def find(self):
         try:
@@ -34,9 +33,30 @@ class GestioneAccessi:
         except AttributeError:
             print("type non valido")
             sys.exit()
+            
     def update(self, ans, pos):
         method = getattr(self, f"{GestioneAccessi.type}_update", None)
         return method(ans, pos)
+
+
+
+    def create_table(self):
+        cur = self.con.cursor()
+        cur.execute('''
+        CREATE TABLE IF NOT EXISTS auth (
+            code TEXT PRIMARY KEY,
+            permesso TEXT
+        )
+        ''')
+
+
+    def sqlite_find(self):
+        self.con = sqlite3.connect(self.path)
+        cur = self.con.cursor()
+        self.create_table()
+        cur.execute(f"SELECT * FROM auth WHERE code = '{self.code}'")
+        res = cur.fetchone()
+        return res
 
 
     def text_update(self, ans, pos):
@@ -64,7 +84,16 @@ class GestioneAccessi:
         with open(self.path, "a") as file:
             file.write(self.code+"/"+ans+"\n")
 
+    def sqlite_add(self, ans):
+        cur = self.con.cursor()
+        #cur.execute(f"INSERT INTO auth VALUES '{self.code}', '{ans}' ")
+        cur.execute("INSERT INTO auth (code, permesso) VALUES (?, ?)", (self.code, ans))
+        self.con.commit()
 
+    def sqlite_update(self, ans, pos):
+        cur = self.con.cursor()
+        cur.execute(f"UPDATE auth SET permesso = '{ans}' WHERE code = '{self.code}'")
+        self.con.commit()
 
 def tableOutput(out, ans, obj):
     if out:
@@ -79,3 +108,4 @@ def tableOutput(out, ans, obj):
 
 obedge.action.system.register(GestioneAccessi)
 obedge.action.system.register(tableOutput)
+

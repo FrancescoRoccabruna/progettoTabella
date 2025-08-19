@@ -16,7 +16,7 @@ out = obedge.queue.call(send="chk", payload=data['args'][0],recv="ans")
 
 if GestioneAccessi.tabella == "local":
 
-    obj = GestioneAccessi(data['args'][0]['code'], "/home/ob/esempio1/db.txt")
+    obj = GestioneAccessi(data['args'][0]['code'], "/home/ob/esempio1/db.sqlite")
 
     ans = obj.find()
 
@@ -24,4 +24,4 @@ if GestioneAccessi.tabella == "local":
 else:
     print("salvataggio locale non abilitato")
 
-print("output: "+out)
+print(f"output: {out}")
