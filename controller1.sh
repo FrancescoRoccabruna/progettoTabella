@@ -12,17 +12,17 @@ INIFILE="${DIR}/$filename.ini"
 EXEFILE="${DIR}/$filename.py"
 
 function Usage() {
-    echo "?Usage: $NAM <name> <type>" 1>&2
+    echo "?Usage: $NAM <type:path>" 1>&2
     exit 2
 }
 
-if [[ $# -ne 2 ]]; then
+if [[ $# -ne 1 ]]; then
     Usage
 fi
 
-name="$1" 
-type="$2"  
+type="$1" 
 
 
-obedge run -i "${EXEFILE} ${name} ${type}" -q mqtt,auth,10.0.0.150:1883,feed,admin --queue-username test --queue-password test -e "p:./newObdemo.py" --console
+
+obedge run -i "${EXEFILE} ${type}" -q mqtt,auth,10.0.0.150:1883,feed,admin --queue-username test --queue-password test -e "p:./newObdemo.py" -e "b:echo"  --console
 

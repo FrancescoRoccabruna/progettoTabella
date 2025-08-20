@@ -1,0 +1,10 @@
+
+test/False
+prova/True
+prova2/False
+prova5/False
+user/False
+end/False
+det/False
+rt/True
+n/True

@@ -7,35 +7,91 @@ import sqlite3
 obedge = vars().get("obedge", None)
 params = obedge.share.input.get("args", [None]*2)
 
-tabellaLocale = params[0]
 
-type = params[1]
+
+class TextFileError(Exception):
+    def __init__(self, message, error):
+        self.message = message
+        self.error = error
+        super().__init__(f"{self.message}, modalità: {self.error}")
+
+class FileExtensionError(Exception):
+    def __init__(self, message, exension):
+        self.message = message
+        self.extension = extension
+        super().__init(f"{self.message}, estensione: {self.extension}")
+
+class ParametersError(Exception):
+    def __init__(self, message, parameter):
+        self.message = message
+        self.parameter = parameter
+        super().__init__(f"{self.message}, modalità: {self.parameter}")
+
+
+
+
+param = params[0]
+
+
+path = None
+kind = None
+
+if ":" in param:
+    kind = param.split(":")[0]
+    path = param.split(":")[1]
+
+    if kind == "remote":
+        raise ParametersError("Parametri errati", path) 
+
+else:
+    kind = param
+
+
+allowedKind = ["sqlite", "text", "remote"]
+
+if kind not in allowedKind:
+    raise ParametersError("Modalità di salvataggio errata", kind)
+
+
+
+
+extension = param.split(".")[-1]
+
+allowedExtensionSqlite = ["sqlite", "db"]
+
+if kind == "sqlite" and extension not in allowedExtensionSqlite or kind == "text" and extension != "txt":
+    raise FileExtensionError("Estensione file errata", extension)
+
+
+
 
 
 class GestioneAccessi:
 
-    tabella = tabellaLocale
-    type = type
+    kind = kind
+    path = path
 
-    def __init__(self, code, path):
-            self.path = path
-            self.code = code
+    def setCode(self, code):
+        self.code = code
 
     def add(self,ans):
-        method = getattr(self, f"{GestioneAccessi.type}_add", None)
+        method = getattr(self, f"{GestioneAccessi.kind}_add", None)
         method(ans)
 
+    def text_open(self, mode):
+        out = None
+        try:
+            out = open(self.path, mode)
+        except IOError:
+            raise TextFileError("Impossibile accedere al file", mode)
+        return out
 
     def find(self):
-        try:
-            method = getattr(self, f"{GestioneAccessi.type}_find")
+            method = getattr(self, f"{GestioneAccessi.kind}_find")
             return method()
-        except AttributeError:
-            print("type non valido")
-            sys.exit()
-            
+
     def update(self, ans, pos):
-        method = getattr(self, f"{GestioneAccessi.type}_update", None)
+        method = getattr(self, f"{GestioneAccessi.kind}_update", None)
         return method(ans, pos)
 
 
@@ -60,29 +116,30 @@ class GestioneAccessi:
 
 
     def text_update(self, ans, pos):
-        with open(self.path, "r") as file:
-            lines = file.readlines()
-            lines[pos] = f"{self.code}/{ans}\n"
-        with open(self.path, "w") as file:
-            file.writelines(lines)
+        file = text_open("r")
+        lines = file.readlines()
+        lines[pos] = f"{self.code}/{ans}\n"
+        file.close()
 
+        file = self.text_open("w")
+        file.writelines(lines)
+        file.close()
     def text_find(self):
         ans = None
-        try:
-            with open(self.path, "r") as file:
-                righe = file.readlines()
-                for i, riga in enumerate(righe):
-                    if riga.split("/")[0] == self.code:
-                        ans = [i, riga.split("/")[-1].strip()]
-                        break
-                return ans
-        except IOError:
-            print("Il file non è editabile")
-            sys.exit()
+        file = self.text_open("r")
+        righe = file.readlines()
+        for i, riga in enumerate(righe):
+            if riga.split("/")[0] == self.code:
+                ans = [i, riga.split("/")[-1].strip()]
+                break
+        file.close()
+        return ans
 
     def text_add(self, ans):
-        with open(self.path, "a") as file:
-            file.write(self.code+"/"+ans+"\n")
+        file = self.text_open("a")
+        file.write(self.code+"/"+ans+"\n")
+        file.close()
+
 
     def sqlite_add(self, ans):
         cur = self.con.cursor()
@@ -95,7 +152,8 @@ class GestioneAccessi:
         cur.execute(f"UPDATE auth SET permesso = '{ans}' WHERE code = '{self.code}'")
         self.con.commit()
 
-def tableOutput(out, ans, obj):
+def tableOutput(val, ans, obj):
+    out = val
     if out:
         if ans == None:
             obj.add(out)
@@ -106,6 +164,13 @@ def tableOutput(out, ans, obj):
     return out
 
 
+def manager():
+    out = None
+    if GestioneAccessi.path != None:
+        out = GestioneAccessi()
+    return out
+
 obedge.action.system.register(GestioneAccessi)
+obedge.action.system.register(manager)
 obedge.action.system.register(tableOutput)
 
