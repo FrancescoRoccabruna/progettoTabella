@@ -116,7 +116,7 @@ class GestioneAccessi:
 
 
     def text_update(self, ans, pos):
-        file = text_open("r")
+        file = self.text_open("r")
         lines = file.readlines()
         lines[pos] = f"{self.code}/{ans}\n"
         file.close()
