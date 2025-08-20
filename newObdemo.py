@@ -1,10 +1,3 @@
-
-import os
-import json
-import sys
-
-
-
 obedge = vars().get("obedge", None)
 
 tableOutput = getattr(obedge.action.custom, "tableOutput")
@@ -23,7 +16,6 @@ if obj:
     ans = obj.find()
 
     out = tableOutput(out, ans, obj)
-
 
 obedge.give(out)
 
