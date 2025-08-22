@@ -199,7 +199,6 @@ class GestioneAccessi:
         file = self.json_open("r")
         jsonDic = json.load(file)
         file.close()
-
         for bedge in jsonDic['data'][self.macAddr]['TEST']['badges']:
             if bedge['code'] == code:
                 ans = True
@@ -221,18 +220,18 @@ class GestioneAccessi:
 
 def tableOutput(out, ans, obj):
     res = None
-
+    
     if out:
         out = json.loads(out)
-        if out['data']['autorized']:
+        print(out)
+        if out['data']['authorized']:
             res = True
             if ans == False:
-                obj.add(out['data']['badge'])
-                
-        elif not out['data']['autorized']: 
+                obj.add(out["data"]["badge"])
+        else: 
             res = False
             if ans:
-                obj.remove(out['data']['badge']['code'])
+                obj.remove(out["data"]["badge"]["code"])
             
     elif ans:
         res = True
@@ -247,18 +246,25 @@ def manager():
     global out
     return out
 
-def adminUpdate(action):
+'''def adminUpdate(action):
+    print("start")
     if GestioneAccessi.path != None:
         global out
         dic = {'action' : action}
-        ans = obedge.queue.call(send="chk", payload=dic,recv="update")
+        ans = obedge.queue.call(send="chk2", payload="dic",recv="update")
+        print(ans)
         if action == "add":
             out.add(ans)
         elif action == "remove":
             out.remove(ans['code'])
         elif action == "rewrite":
             out.rewrite_all(ans)
-
+'''
+def adminUpdate(dit):
+    print(f"start: {dit}")
+    if GestioneAccessi.path != None:
+        global out
+        out.rewrite_all(dit)
 
 obedge.action.system.register(GestioneAccessi)
 obedge.action.system.register(manager)
