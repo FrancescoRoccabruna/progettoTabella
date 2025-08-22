@@ -227,11 +227,11 @@ def tableOutput(out, ans, obj):
         if out['data']['authorized']:
             res = True
             if ans == False:
-                obj.add(out["data"]["badge"])
+                obj.add(out['data']['badge'])
         else: 
             res = False
             if ans:
-                obj.remove(out["data"]["badge"]["code"])
+                obj.remove(out['data']['badge']['code'])
             
     elif ans:
         res = True
@@ -246,12 +246,13 @@ def manager():
     global out
     return out
 
-'''def adminUpdate(action):
+
+def updateTest(action):
     print("start")
     if GestioneAccessi.path != None:
         global out
         dic = {'action' : action}
-        ans = obedge.queue.call(send="chk2", payload="dic",recv="update")
+        ans = obedge.queue.call(send="check", payload=dic,recv="update")
         print(ans)
         if action == "add":
             out.add(ans)
@@ -259,14 +260,23 @@ def manager():
             out.remove(ans['code'])
         elif action == "rewrite":
             out.rewrite_all(ans)
-'''
+
+
+
+
+
 def adminUpdate(dit):
     print(f"start: {dit}")
     if GestioneAccessi.path != None:
         global out
         out.rewrite_all(dit)
 
+dic = {'action' : "rewrite"}
+
+obedge.queue.call(send="check", payload=dic,recv="update")
+
 obedge.action.system.register(GestioneAccessi)
 obedge.action.system.register(manager)
 obedge.action.system.register(tableOutput)
 obedge.action.system.register(adminUpdate)
+obedge.action.system.register(updateTest)
