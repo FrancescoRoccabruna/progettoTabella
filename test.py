@@ -54,7 +54,6 @@ if kind not in allowedKind:
     raise ParametersError("Modalità di salvataggio errata", kind)
 
 
-
 extension = path.split(".")[-1]
 
 allowedExtensionSqlite = ["sqlite", "db"]
@@ -76,8 +75,10 @@ class GestioneAccessi:
             self.json_write(dic)
 
         elif kind == "sqlite":
-            self.con = sqlite3.connect(path)
             self.create_tables()
+
+    def con(self):
+        return sqlite3.connect(GestioneAccessi.path)
 
     def setCode(self, code):
         self.code = code
@@ -121,7 +122,7 @@ class GestioneAccessi:
         for badge in partialDic['badges']:
             dati.append((badge['code'], badge['id'], badge['dude_id']))
 
-        query = 'INSERT OR REPLACE INTO auth (code, id, dude_id) VALUES (?, ?, ?)'
+        query = 'INSERT OR REPLACE INTO badges (code, id, dude_id) VALUES (?, ?, ?)'
 
         cur.executemany(query, dati)
         temp.commit()
@@ -138,12 +139,20 @@ class GestioneAccessi:
         temp.close()
 
     def sqlite_rewrite_all(self, dic):
-        temp = sqlite3.connect(GestioneAccessi.path)
-        cur = temp.cursor()
-        cur.execute('DELETE FROM auth')
-        temp.commit()
-        temp.close()
-        self.sqlite_update_all(dic)
+        # Optionally clear tables only if dic contains data
+        partialDic = dic['data'][self.macAddr]['TEST']
+        
+        if partialDic.get('badges') or partialDic.get('command'):
+            temp = sqlite3.connect(GestioneAccessi.path)
+            cur = temp.cursor()
+            cur.execute('DELETE FROM badges')
+            cur.execute('DELETE FROM commands')
+            temp.commit()
+            temp.close()
+            self.sqlite_update_all(dic)
+        else:
+            # no data, skip rewriting to prevent empty DB
+            print("Warning: rewrite called with empty data, skipping DB wipe.")
 
     def json_rewrite_all(self, dic):
         file = self.json_open("w")
@@ -151,7 +160,8 @@ class GestioneAccessi:
         file.close()
 
     def create_tables(self):
-        cur = self.con.cursor()
+        con = self.con()
+        cur = con.cursor()
         cur.execute('''
         CREATE TABLE IF NOT EXISTS badges (
             code TEXT PRIMARY KEY,
@@ -167,13 +177,16 @@ class GestioneAccessi:
         )
         ''')
         cur.close()
+        con.close()
 
     def sqlite_find(self, code):
         res = False
-        cur = self.con.cursor()
+        con = self.con()
+        cur = con.cursor()
         cur.execute("SELECT * FROM badges WHERE code = ?", (code,))
         out = cur.fetchone()
         cur.close()
+        con.close()
 
         if out:
             res = True
@@ -222,15 +235,19 @@ class GestioneAccessi:
         return ans
 
     def sqlite_add(self, badge):
-        cur = self.con.cursor()
+        con = self.con()
+        cur = con.cursor()
         cur.execute("INSERT OR REPLACE INTO badges (code, id, dude_id) VALUES (?, ?, ?)", (badge['code'], badge['id'], badge['dude_id']))
-        self.con.commit()
+        con.commit()
+        con.close()
 
     def sqlite_remove(self, code):
-        cur = self.con.cursor()
+        con = self.con()
+        cur = con.cursor()
         cur.execute("DELETE FROM badges WHERE code = ?", (code,))
-        self.con.commit()
+        con.commit()
         cur.close()
+        con.close()
 
 
 def tableOutput(out, ans, obj):
@@ -262,36 +279,25 @@ def manager():
     return out
 
 
-def updateTest(action):
-    print("start")
-    if GestioneAccessi.path != None:
-        global out
-        dic = {'action' : action}
-        ans = obedge.queue.call(send="check", payload=dic,recv="update")
-        print(ans)
-        if action == "add":
-            out.add(ans)
-        elif action == "remove":
-            out.remove(ans['code'])
-        elif action == "rewrite":
-            out.rewrite_all(ans)
 
-
-
+def action(action):
+    print(f"azione: {action}")
 
 
 def adminUpdate(dit):
-    print(f"start: {dit}")
+    print("eseguito adminUpdate")
     if GestioneAccessi.path != None:
         global out
         out.rewrite_all(dit)
 
-dic = {'action' : "rewrite"}
+dic = {'kind' : "", 'code' : "", 'rawdata' : "", 'action' : "rewrite"}
 
-obedge.queue.call(send="check", payload=dic,recv="update")
+obedge.queue.feed(payload=dic)
+
+
 
 obedge.action.system.register(GestioneAccessi)
 obedge.action.system.register(manager)
 obedge.action.system.register(tableOutput)
 obedge.action.system.register(adminUpdate)
-obedge.action.system.register(updateTest)
+

@@ -24,5 +24,5 @@ type="$1"
 
 
 
-obedge run -i "${EXEFILE} ${type}" -q mqtt,auth,10.0.0.150:1883,feed,admin --queue-username test --queue-password test  --name TEST -e "p:./testScript.py" -e "b:echo"  --console
+obedge run  -i "${EXEFILE} ${type}" -q mqtt,auth,10.0.0.179:51883,feed,admin -s FTDI_FT232R --queue-username test --queue-password test  --name TEST -e "p:./testScript.py" -e "b:echo"  --console
 
