@@ -113,11 +113,27 @@ class GestioneAccessi:
     def sqlite_update_all(self, dic):
         temp = sqlite3.connect(GestioneAccessi.path)
         cur = temp.cursor()
-        dati = list(dic.items())
-        query = 'INSERT OR REPLACE INTO auth (code, permesso) VALUES (?, ?)'
+
+        partialDic = dic['data'][self.macAddr]['TEST']
+        #dati = list(dic.items())
+        dati = []
+
+        for badge in partialDic['badges']:
+            dati.append((badge['code'], badge['id'], badge['dude_id']))
+
+        query = 'INSERT OR REPLACE INTO auth (code, id, dude_id) VALUES (?, ?, ?)'
 
         cur.executemany(query, dati)
-        print("beccato!")
+        temp.commit()
+
+        dati = []
+
+        for key, command in partialDic['command'].items():
+            dati.append((key, command))
+
+        query = 'INSERT OR REPLACE INTO commands (key, command) VALUES (?, ?)'
+
+        cur.executemany(query, dati)
         temp.commit()
         temp.close()
 
@@ -146,7 +162,7 @@ class GestioneAccessi:
 
         cur.execute('''
         CREATE TABLE IF NOT EXISTS commands (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT PRIMARY KEY,
             command TEXT
         )
         ''')
@@ -204,7 +220,6 @@ class GestioneAccessi:
                 ans = True
                 break
         return ans
-
 
     def sqlite_add(self, badge):
         cur = self.con.cursor()
