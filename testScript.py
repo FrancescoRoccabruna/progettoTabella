@@ -21,11 +21,12 @@ try:
         ans = obj.find(obj.code)
         print(ans)
         out = tableOutput(res, ans, obj)
-        print(out)
+        #print(out)
     elif res:
         out = json.loads(res)['data']['authorized']
 
     #obedge.give(out)
+    print(out)
 
     if out and res:
         res = json.loads(res)
