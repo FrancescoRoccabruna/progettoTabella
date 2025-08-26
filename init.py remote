@@ -1,0 +1,3 @@
+init.py remote
+init.py sqlite:/tmp/db.sqlite
+init.py text:/tmp/db.sqlite

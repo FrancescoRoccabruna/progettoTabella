@@ -4,6 +4,7 @@ import sqlite3
 import os
 import json
 import uuid
+import time
 
 
 obedge = vars().get("obedge", None)
@@ -110,6 +111,39 @@ class GestioneAccessi:
     def rewrite_all(self, dic):
         method = getattr(self, f"{GestioneAccessi.kind}_rewrite_all")
         return method(dic)
+
+    def action(self):
+        method = getattr(self, f"{GestioneAccessi.kind}_action")
+        return method()
+    
+    def json_action(self):
+        file = self.json_open("r")
+        jsonDic = json.load(file)
+        action = jsonDic['data'][self.macAddr]['TEST']['command']
+        print(f"azione: {action}")
+        obedge.iono.write(action['door'], 1)
+
+        time.sleep(3)
+        obedge.iono.write(action['door'], 0)
+
+    def sqlite_action(self):
+        con = self.con()
+        cur = con.cursor()
+
+        cur.execute("SELECT * FROM commands")
+        out = cur.fetchall()
+        action = {}
+
+        for t in out:
+            action[t[0]] = t[1]
+            
+        print(f"azione: {action}")
+        obedge.iono.write(action['door'], 1)
+
+        time.sleep(3)
+        obedge.iono.write(action['door'], 0)
+
+
 
     def sqlite_update_all(self, dic):
         temp = sqlite3.connect(GestioneAccessi.path)
@@ -282,6 +316,10 @@ def manager():
 
 def action(action):
     print(f"azione: {action}")
+    obedge.iono.write(action['door'], 1)
+
+    time.sleep(3)
+    obedge.iono.write(action['door'], 0)
 
 
 def adminUpdate(dit):
@@ -292,6 +330,8 @@ def adminUpdate(dit):
 
 dic = {'kind' : "", 'code' : "", 'rawdata' : "", 'action' : "rewrite"}
 
+    
+
 obedge.queue.feed(payload=dic)
 
 
@@ -300,4 +340,6 @@ obedge.action.system.register(GestioneAccessi)
 obedge.action.system.register(manager)
 obedge.action.system.register(tableOutput)
 obedge.action.system.register(adminUpdate)
+obedge.action.system.register(action)
 
+#scan "5522df0fe19305cd"
