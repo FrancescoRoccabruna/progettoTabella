@@ -297,7 +297,7 @@ def tableOutput(out, ans, obj):
         else: 
             res = False
             if ans:
-                obj.remove(out['data']['badge']['code'])
+                obj.remove(obj.code)
             
     elif ans:
         res = True
@@ -307,6 +307,8 @@ def tableOutput(out, ans, obj):
 out = None
 if GestioneAccessi.path != None:
     out = GestioneAccessi()
+    dic = {'kind' : "", 'code' : "", 'rawdata' : "", 'action' : "rewrite"}
+    obedge.queue.feed(payload=dic)
 
 def manager():
     global out
@@ -328,11 +330,11 @@ def adminUpdate(dit):
         global out
         out.rewrite_all(dit)
 
-dic = {'kind' : "", 'code' : "", 'rawdata' : "", 'action' : "rewrite"}
+
 
     
 
-obedge.queue.feed(payload=dic)
+
 
 
 
