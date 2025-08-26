@@ -120,11 +120,7 @@ try:
             file = self.json_open("r")
             jsonDic = json.load(file)
             action = jsonDic['data'][self.macAddr]['TEST']['command']
-            print(f"azione: {action}")
-            obedge.iono.write(action['door'], 1)
-
-            time.sleep(3)
-            obedge.iono.write(action['door'], 0)
+            open_door(self.code, action['door'], action['check'])
 
         def sqlite_action(self):
             con = self.con()
@@ -137,11 +133,7 @@ try:
             for t in out:
                 action[t[0]] = t[1]
                 
-            print(f"azione: {action}")
-            obedge.iono.write(action['door'], 1)
-
-            time.sleep(3)
-            obedge.iono.write(action['door'], 0)
+            open_door(self.code, action['door'], action['check'])
 
 
 
@@ -317,11 +309,7 @@ try:
 
 
     def action(action):
-        print(f"azione: {action}")
-        obedge.iono.write(action['door'], 1)
-
-        time.sleep(3)
-        obedge.iono.write(action['door'], 0)
+        open_door(action['badge']['code'], action['status']['command']['door'], action['status']['command']['check'])
 
 
     def updateBadge(dic):
@@ -339,6 +327,28 @@ try:
         if GestioneAccessi.path != None:
             global out
             out.rewrite_all(dit)
+
+
+    def open_door(badge_code, door, check=None, sleep=0.1,maxseconds=5):
+        obedge.iono.write(door, 1)
+
+        if check:
+            start = time.time()
+            checked = False
+            while time.time() - start <= maxseconds:
+                var = obedge.iono.read(check)
+
+                if var == 1 or var == "1":
+                    checked = True
+                    break
+            obedge.queue.feed(payload = {
+                "badge_code" : badge_code,
+                "check" : check,
+                "checked" : checked
+            })
+        else: time.sleep(sleep)
+        obedge.iono.write(door, 0)
+
 
 
     obedge.action.system.register(GestioneAccessi)
