@@ -1,49 +1,37 @@
 import json
 
-obedge = vars().get("obedge", None)
-
-tableOutput = getattr(obedge.action.custom, "tableOutput")
-manager = getattr(obedge.action.custom, "manager")
-action = getattr(obedge.action.custom, "action")
-
 try:
+    obedge = vars().get("obedge", None)
 
-    data = obedge.take()
-
-    res = obedge.queue.call(send="check", payload=data['args'][0],recv="answer")
-
+    tableOutput = getattr(obedge.action.custom, "tableOutput")
+    manager = getattr(obedge.action.custom, "manager")
+    action = getattr(obedge.action.custom, "action")
 
     obj = manager()
+    data = obedge.take()
+
+    call = obedge.queue.call(send="check", payload=data['args'][0],recv="answer")
 
     if obj:
-
         obj.setCode(data['args'][0]['code'])
         ans = obj.find(obj.code)
         print(ans)
-        out = tableOutput(res, ans, obj)
-        #print(out)
-    elif res:
-        out = json.loads(res)['data']['authorized']
-
-    #obedge.give(out)
+        out = tableOutput(call, ans, obj)
+    elif call:
+        out = json.loads(call)['data']['authorized']
+        
     print(out)
 
-    if out and res:
-        res = json.loads(res)
-        action(res["data"])
+    if out and call:
+        call = json.loads(call)
+        action(call["data"])
     elif out:
         obj.action()
-
-    
-    
-    #elif out:
-     #   db_action()
-
 
 except Exception as a:
     print(a)
 
 
-# ./test.sh sqlite:prova.sqlite FTDI_FT232R
+
 
 

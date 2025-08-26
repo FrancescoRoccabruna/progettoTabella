@@ -204,7 +204,7 @@ try:
             ''')
             cur.close()
             con.close()
-
+        
         def sqlite_find(self, code):
             res = False
             con = self.con()
