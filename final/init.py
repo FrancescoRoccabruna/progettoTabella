@@ -165,7 +165,6 @@ try:
             temp.close()
 
         def sqlite_rewrite_all(self, dic):
-            # Optionally clear tables only if dic contains data
             partialDic = dic['data'][self.macAddr]['TEST']
             
             if partialDic.get('badges') or partialDic.get('command'):
@@ -311,15 +310,6 @@ try:
     def action(action):
         open_door(action['badge']['code'], action['status']['command']['door'], action['status']['command']['check'])
 
-
-    def updateBadge(dic):
-        print("eseguito updateBadge")
-        if GestioneAccessi.path != None:
-            global out
-            if dic['type'] == "add":
-                out.add(dic['badge'])
-            else:
-                out.remove(dic['badge']['code'])
                 
 
     def adminUpdate(dit):
