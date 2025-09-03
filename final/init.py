@@ -5,6 +5,7 @@ import os
 import json
 import uuid
 import time
+from datetime import datetime
 
 try:
     obedge = vars().get("obedge", None)
@@ -32,6 +33,7 @@ try:
 
 
     param = params[0]
+
 
 
     path = None
@@ -62,7 +64,7 @@ try:
     if kind == "sqlite" and extension not in allowedExtensionSqlite or kind == "json" and extension != "json":
         raise FileExtensionError("Estensione file errata", extension)
 
-
+    print(obedge.me.name)
 
     class GestioneAccessi:
 
@@ -70,9 +72,10 @@ try:
         path = path
 
         def __init__(self):
-            self.macAddr = f'{uuid.getnode():012x}'
+            self.macAddr = obedge.me.config.id#f'{uuid.getnode():012x}'
+            self.reader = obedge.me.config.name
             if kind == "json" and not os.path.exists(path):
-                dic = {'data' : {self.macAddr : {'TEST' : {'badges' : [] }}}}
+                dic = {'data' : {self.macAddr : {self.reader : {'badges' : [] }}}}
                 self.json_write(dic)
 
             elif kind == "sqlite":
@@ -95,6 +98,10 @@ try:
             except IOError:
                 raise JsonFileError("Impossibile accedere al file", mode)
             return out
+        
+        def log_add(self):
+            method = getattr(self, f"{GestioneAccessi.kind}_log_add")
+            return method()
 
         def find(self, code):
             method = getattr(self, f"{GestioneAccessi.kind}_find")
@@ -116,11 +123,15 @@ try:
             method = getattr(self, f"{GestioneAccessi.kind}_action")
             return method()
         
+        def logs_find(self):
+            method = getattr(self, f"{GestioneAccessi.kind}_logs_find")
+            return method()
+        
         def json_action(self):
             file = self.json_open("r")
             jsonDic = json.load(file)
-            action = jsonDic['data'][self.macAddr]['TEST']['command']
-            open_door(self.code, action['door'], action['check'])
+            action = jsonDic['data'][self.macAddr][self.reader]['command']
+            open_door(self.code, action['door'], action['check'], remote=False)
 
         def sqlite_action(self):
             con = self.con()
@@ -133,7 +144,7 @@ try:
             for t in out:
                 action[t[0]] = t[1]
                 
-            open_door(self.code, action['door'], action['check'])
+            open_door(self.code, action['door'], action['check'], remote=False)
 
 
 
@@ -141,7 +152,7 @@ try:
             temp = sqlite3.connect(GestioneAccessi.path)
             cur = temp.cursor()
 
-            partialDic = dic['data'][self.macAddr]['TEST']
+            partialDic = dic['data'][self.macAddr][self.reader]
             #dati = list(dic.items())
             dati = []
 
@@ -165,12 +176,13 @@ try:
             temp.close()
 
         def sqlite_rewrite_all(self, dic):
-            partialDic = dic['data'][self.macAddr]['TEST']
+            partialDic = dic['data'][self.macAddr][self.reader]
             
             if partialDic.get('badges') or partialDic.get('command'):
                 temp = sqlite3.connect(GestioneAccessi.path)
                 cur = temp.cursor()
                 cur.execute('DELETE FROM badges')
+                temp.commit()
                 cur.execute('DELETE FROM commands')
                 temp.commit()
                 temp.close()
@@ -201,6 +213,14 @@ try:
                 command TEXT
             )
             ''')
+
+            cur.execute('''
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT,
+                datetime TEXT
+            )
+            ''')
             cur.close()
             con.close()
         
@@ -223,11 +243,41 @@ try:
             file.close()
 
             #jsonDic["badges"].remove(badge)
-            for badge in jsonDic['data'][self.macAddr]['TEST']['badges']:
+            for badge in jsonDic['data'][self.macAddr][self.reader]['badges']:
                 if badge['code'] == code:
-                    jsonDic['data'][self.macAddr]['TEST']['badges'].remove(badge)
+                    jsonDic['data'][self.macAddr][self.reader]['badges'].remove(badge)
                     break
             self.json_write(jsonDic)
+        
+
+        def sqlite_log_add(self):
+            con = self.con()
+            cur = con.cursor()
+            cur.execute("INSERT INTO logs (code, datetime) VALUES (?, ?)", (self.code, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")))
+            con.commit()
+            con.close()
+
+        def sqlite_log_send(self):
+            con = self.con()
+            cur = con.cursor()
+            cur.execute("SELECT code, datetime FROM logs")
+            logs = cur.fetchall()
+            cur.execute('DELETE FROM logs')
+            con.commit()
+            con.close()
+
+            out = {'action' : "logs", 'data' : logs}
+            obedge.queue.feed(payload=out)
+
+        def sqlite_logs_find(self):
+            con = self.con()
+            cur = con.cursor()
+            cur.execute("SELECT count(*) FROM logs")
+
+            out = cur.fetchone()[0]
+
+            if out > 0:
+                self.sqlite_log_send()
 
 
         def json_add(self, badge):
@@ -238,7 +288,7 @@ try:
             if self.json_find(badge['code']):
                 self.json_remove(badge['code'])
 
-            jsonDic['data'][self.macAddr]['TEST']['badges'].append(badge)
+            jsonDic['data'][self.macAddr][self.reader]['badges'].append(badge)
             self.json_write(jsonDic)
 
 
@@ -253,7 +303,7 @@ try:
             file = self.json_open("r")
             jsonDic = json.load(file)
             file.close()
-            for bedge in jsonDic['data'][self.macAddr]['TEST']['badges']:
+            for bedge in jsonDic['data'][self.macAddr][self.reader]['badges']:
                 if bedge['code'] == code:
                     ans = True
                     break
@@ -281,8 +331,10 @@ try:
         if out:
             out = json.loads(out)
             print(out)
+            obj.logs_find()
             if out['data']['authorized']:
                 res = True
+                
                 if ans == False:
                     obj.add(out['data']['badge'])
             else: 
@@ -292,6 +344,7 @@ try:
                 
         elif ans:
             res = True
+            obj.log_add()
         return res
 
 
@@ -300,6 +353,7 @@ try:
         out = GestioneAccessi()
         dic = {'kind' : "", 'code' : "", 'rawdata' : "", 'action' : "rewrite"}
         obedge.queue.feed(payload=dic)
+        out.logs_find()
 
     def manager():
         global out
@@ -314,12 +368,14 @@ try:
 
     def adminUpdate(dit):
         print("eseguito adminUpdate")
+        print(dit)
+        print(type(dit))
         if GestioneAccessi.path != None:
             global out
             out.rewrite_all(dit)
 
 
-    def open_door(badge_code, door, check=None, sleep=0.1,maxseconds=5):
+    def open_door(badge_code, door, remote=True, check=None, sleep=0.1,maxseconds=5):
         obedge.iono.write(door, 1)
 
         if check:
@@ -331,11 +387,12 @@ try:
                 if var == 1 or var == "1":
                     checked = True
                     break
-            obedge.queue.feed(payload = {
-                "badge_code" : badge_code,
-                "check" : check,
-                "checked" : checked
-            })
+            if remote:
+                obedge.queue.feed(payload = {
+                    "badge_code" : badge_code,
+                    "check" : check,
+                    "checked" : checked
+                })
         else: time.sleep(sleep)
         obedge.iono.write(door, 0)
 
