@@ -31,30 +31,12 @@ echo
 # --------------------------------------------------------------------------------------------#
 
 # setta emergenza
-echo "1" > /sys/class/ionopi/relay/o3
+#echo "1" > /sys/class/ionopi/relay/o3
 
-
-if [[ $# -eq 0 ]]; then
-
-    while : ;
-    do
-        readers=($(obedge info | grep "FTDI_FT232R_USB_UART_" | cut -d'_' -f5))
-
-        instances=()
-
-        for (( i=0; i<${#readers[@]}; i++ )); do
-            reader="${readers[i]}"
-            obedge run -i "init.py sqlite" -q mqtt,auth,10.0.0.179:51883,feed,admin -s "${reader}" --name "${reader}" -e "p:./arconvert.py" & 
-            instances+=("$!")
-        done
-        wait -n
-
-        for (( i=0; i<${#instances[@]}; i++ )); do
-            kill -9 $instances[i] > /dev/null 2>&1
-        done
-        sleep 3
-    done
-fi
-
-
+while : ;
+do
+    obedge run  -i "init.py sqlite:testa.sqlite" -q mqtt,auth,10.0.0.179:51883,feed,admin -s FTDI_FT232R --queue-username test --queue-password test  --name TEST -e "p:./arconvert.py"  --console
+    wait -n
+    sleep 3
+done
 

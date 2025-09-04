@@ -15,13 +15,9 @@ try:
     if obj:
         obj.setCode(data['args'][0]['code'])
         ans = obj.find(obj.code)
-        print(ans)
         out = tableOutput(call, ans, obj)
     elif call:
         out = json.loads(call)['data']['authorized']
-        
-    print(out)
-
     if out and call:
         call = json.loads(call)
         action(call["data"])

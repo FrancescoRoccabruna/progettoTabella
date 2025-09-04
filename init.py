@@ -12,6 +12,7 @@ try:
     params = obedge.share.input.get("args", [None]*2)
 
 
+
     class JsonFileError(Exception):
         def __init__(self, message, error):
             self.message = message
@@ -30,16 +31,38 @@ try:
             self.parameter = parameter
             super().__init__(f"{self.message}, modalità: {self.parameter}")
 
-    
-    kind = params[0]
-    
+
+    param = params[0]
+
+
+
+    path = None
+    kind = None
+
+
+    if ":" in param:
+        kind = param.split(":")[0]
+        path = param.split(":")[1]
+
+        if kind == "remote":
+            raise ParametersError("Parametri errati", path) 
+
+    else:
+        kind = param
+
 
     allowedKind = ["sqlite", "json", "remote"]
 
     if kind not in allowedKind:
         raise ParametersError("Modalità di salvataggio errata", kind)
 
-    path = f"{obedge.me.config.name}.{kind}"
+    if path:
+        extension = path.split(".")[-1]
+
+    allowedExtensionSqlite = ["sqlite", "db"]
+
+    if kind == "sqlite" and extension not in allowedExtensionSqlite or kind == "json" and extension != "json":
+        raise FileExtensionError("Estensione file errata", extension)
 
     class GestioneAccessi:
 
@@ -321,13 +344,13 @@ try:
             obj.log_add()
         return res
 
+
     out = None
     if GestioneAccessi.path != None:
         out = GestioneAccessi()
         dic = {'kind' : "", 'code' : "", 'rawdata' : "", 'action' : "rewrite"}
         obedge.queue.feed(payload=dic)
         out.logs_find()
-
 
     def manager():
         global out
@@ -366,6 +389,7 @@ try:
                 })
         else: time.sleep(sleep)
         obedge.iono.write(door, 0)
+
 
 
     obedge.action.system.register(GestioneAccessi)
