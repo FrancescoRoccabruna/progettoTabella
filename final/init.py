@@ -47,7 +47,8 @@ try:
         path = path
 
         def __init__(self):
-            self.macAddr = obedge.me.config.id#f'{uuid.getnode():012x}'
+            self.macAddr = obedge.me.config.id
+
             self.reader = obedge.me.config.name
             if kind == "json" and not os.path.exists(path):
                 dic = {'data' : {self.macAddr : {self.reader : {'badges' : [] }}}}
@@ -128,7 +129,6 @@ try:
             cur = temp.cursor()
 
             partialDic = dic['data'][self.macAddr][self.reader]
-            #dati = list(dic.items())
             dati = []
 
             for badge in partialDic['badges']:
@@ -162,9 +162,6 @@ try:
                 temp.commit()
                 temp.close()
                 self.sqlite_update_all(dic)
-            else:
-                # no data, skip rewriting to prevent empty DB
-                print("Warning: rewrite called with empty data, skipping DB wipe.")
 
         def json_rewrite_all(self, dic):
             file = self.json_open("w")
@@ -273,7 +270,6 @@ try:
             file.close()
             
         def json_find(self, code):
-            #trovato = any('code' in elem for elem in dati['badges'])
             ans = False
             file = self.json_open("r")
             jsonDic = json.load(file)
@@ -374,6 +370,5 @@ try:
     obedge.action.system.register(adminUpdate)
     obedge.action.system.register(action)
 
-    #scan "5522df0fe19305cd"
 except Exception as a:
     print(a)
