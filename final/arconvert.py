@@ -24,8 +24,8 @@ try:
     elif out:
         obj.action()
 
-except Exception as a:
-    print(a)
+except Exception as exc:
+    print(exc)
 
 
 

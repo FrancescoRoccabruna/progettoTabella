@@ -48,7 +48,6 @@ try:
 
         def __init__(self):
             self.macAddr = obedge.me.config.id
-
             self.reader = obedge.me.config.name
             if kind == "json" and not os.path.exists(path):
                 dic = {'data' : {self.macAddr : {self.reader : {'badges' : [] }}}}
@@ -214,7 +213,6 @@ try:
             jsonDic = json.load(file)
             file.close()
 
-            #jsonDic["badges"].remove(badge)
             for badge in jsonDic['data'][self.macAddr][self.reader]['badges']:
                 if badge['code'] == code:
                     jsonDic['data'][self.macAddr][self.reader]['badges'].remove(badge)
@@ -330,11 +328,9 @@ try:
         return out
 
 
-
     def action(action):
         open_door(action['badge']['code'], action['status']['command']['door'], action['status']['command']['check'])
 
-                
 
     def adminUpdate(dit):
         if GestioneAccessi.path != None:
